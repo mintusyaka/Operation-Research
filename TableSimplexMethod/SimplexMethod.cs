@@ -15,11 +15,11 @@ namespace TableSimplexMethod
             smtable.BuildTable();
         }
 
-        /*public static void DualSimplexMethodAlgorithm(ModelOfLinearProgramming mlp)
+        public static void DualSimplexMethodAlgorithm(ModelOfLinearProgramming mlp)
         {
             ITable smtable = new DualSimplexMethodTable(mlp);
             smtable.BuildTable();
-        }*/
+        }
     }
 
     interface ITable
@@ -40,6 +40,7 @@ namespace TableSimplexMethod
             _Q = new double[_model.Columns];
             FindBasis();
         }
+        protected char symbol;
 
         public void BuildTable()
         {
@@ -105,7 +106,7 @@ namespace TableSimplexMethod
         abstract protected bool isValidSolution();
         private void PrintTable()
         {
-            Console.Write("\txb\t|\tcb\t|\tP0\t");
+            Console.Write($"\t{symbol}b\t|\tcb\t|\tP0\t");
             for (int i = 0; i < _model.Columns; ++i)
             {
                 Console.Write($"|\tP{i + 1}\t");
@@ -117,7 +118,7 @@ namespace TableSimplexMethod
         }
         private void PrintRow(int xb, double cb, double P0, int i)
         {
-            Console.Write($"\tx{xb + 1}\t|\t{cb}\t|\t{P0}\t");
+            Console.Write($"\t{symbol}{xb + 1}\t|\t{cb}\t|\t{P0}\t");
             for (int j = 0; j < _model.Columns; ++j)
             {
                 Console.Write($"|\t{_model.MatrixCoeffs[i, j]}\t");
@@ -185,7 +186,9 @@ namespace TableSimplexMethod
     // Розв'язання симплекс-методом
     class SimplexMethodTable : Table
     {
-        public SimplexMethodTable(ModelOfLinearProgramming model) : base(model) { }
+        public SimplexMethodTable(ModelOfLinearProgramming model) : base(model) {
+            symbol = 'x';
+        }
 
         
         private double CalculateZ(int leadColumn, int leadRow)
@@ -254,23 +257,37 @@ namespace TableSimplexMethod
 
     }
 
-    /*class DualSimplexMethodTable : Table
+    class DualSimplexMethodTable : Table
     {
-        public DualSimplexMethodTable(ModelOfLinearProgramming model) : base(model) { }
+        public DualSimplexMethodTable(ModelOfLinearProgramming model) : base(model) {
+            symbol = 'y';
+        }
 
 
         protected override void RecalculateTable()
         {
             int leadRow = Array.IndexOf(_model.FreeMembersCoeffs, _model.FreeMembersCoeffs.Min());
 
-            int leadColumn = Enumerable.Range(0, _model.Columns)
-                .OrderBy((i) => {
-                    double temp = _Q[i] / _model.MatrixCoeffs[leadRow, i];
-                    if(_Q[i] != 0)
-                    return ;
+            int leadColumn = 0;
+
+            for (int i = 0; i < _model.Columns; i++)
+            {
+                if ((_Q[i] == 0 && i == leadColumn))
+                {
+                    leadColumn++;
+                    continue;
+                }
+                if (_basis.Contains(i))
+                    continue;
+
+                if (_Q[i] != 0 && _model.MatrixCoeffs[leadRow, i] != 0)
+                {
+                    if(-_Q[i] / _model.MatrixCoeffs[leadRow, i] < -_Q[leadColumn] / _model.MatrixCoeffs[leadRow, leadColumn])
+                    {
+                        leadColumn = i;
                     }
-                )
-                .First();
+                }
+            }
 
             _basis[leadRow] = leadColumn;
 
@@ -289,7 +306,7 @@ namespace TableSimplexMethod
                 return false;
             return true;
         }
-    }*/
+    }
 
     // Модель задачі лінійного програмування
     class ModelOfLinearProgramming
