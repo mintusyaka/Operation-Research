@@ -20,7 +20,19 @@ namespace TableSimplexMethod
             ITable smtable = new DualSimplexMethodTable(mlp);
             smtable.BuildTable();
         }
+
+        public static void GomoryMethodAlgorithm(ModelOfLinearProgramming mlp)
+        {
+            GomoryMethod gomory = new GomoryMethod(mlp);
+            gomory.BuildTable();
+        }
     }
+
+    // клас який викликає метод, який буде давати нові межі.
+    // ці межі треба підставити у модель програмування
+    // тоді пройтись двоїстим симплекс методом
+    // пеервірити умови Методом Гоморі. Чи цілочисельний розв'язок?
+
 
     interface ITable
     {
@@ -32,7 +44,13 @@ namespace TableSimplexMethod
         protected ModelOfLinearProgramming _model;
         protected ModelOfLinearProgramming _tempModel;
         protected int[] _basis;
+
+        public int[] Basis { get { return _basis; } }
+        public ModelOfLinearProgramming Model { get { return _model; } }
+
+
         protected double[] _Q;
+        public double[] Q { get { return _Q; } }
         public Table(ModelOfLinearProgramming model)
         {
             _tempModel = new ModelOfLinearProgramming(model);
@@ -104,7 +122,7 @@ namespace TableSimplexMethod
             _tempModel = temp;
         }
         abstract protected bool isValidSolution();
-        private void PrintTable()
+        protected void PrintTable()
         {
             Console.Write($"\t{symbol}b\t|\tcb\t|\tP0\t");
             for (int i = 0; i < _model.Columns; ++i)
@@ -116,18 +134,18 @@ namespace TableSimplexMethod
             PrintDividerLine('=');
 
         }
-        private void PrintRow(int xb, double cb, double P0, int i)
+        protected void PrintRow(int xb, double cb, double P0, int i)
         {
-            Console.Write($"\t{symbol}{xb + 1}\t|\t{cb}\t|\t{P0}\t");
+            Console.Write($"\t{symbol}{xb + 1}\t|\t{Math.Round(cb, 3)}\t|\t{Math.Round(P0, 3)}\t");
             for (int j = 0; j < _model.Columns; ++j)
             {
-                Console.Write($"|\t{_model.MatrixCoeffs[i, j]}\t");
+                Console.Write($"|\t{Math.Round(_model.MatrixCoeffs[i, j], 3)}\t");
             }
             Console.Write('\n');
 
             PrintDividerLine('-');
         }
-        private void PrintLastRow()
+        protected void PrintLastRow()
         {
             double Qc = 0;
 
@@ -136,7 +154,7 @@ namespace TableSimplexMethod
                 Qc += _model.ObjectiveCoeffs[_basis[i]] * _model.FreeMembersCoeffs[i];
             }
 
-            Console.Write($"\tQ\t|\t \t|\t{Qc}\t");
+            Console.Write($"\tQ\t|\t \t|\t{Math.Round(Qc, 3)}\t");
 
             for (int i = 0; i < _model.Columns; ++i)
             {
@@ -150,13 +168,13 @@ namespace TableSimplexMethod
                 tempQ -= _model.ObjectiveCoeffs[i];
                 _Q[i] = tempQ;
 
-                Console.Write($"|\t{_Q[i]}\t");
+                Console.Write($"|\t{Math.Round(_Q[i], 3)}\t");
             }
             Console.Write('\n');
 
             PrintDividerLine('-');
         }
-        private void PrintDividerLine(char ch)
+        protected void PrintDividerLine(char ch)
         {
             for (int i = 0; i < 16 * (_model.Columns + 3); ++i)
             {
@@ -182,15 +200,22 @@ namespace TableSimplexMethod
             }
         }
     }
-    
+
     // Розв'язання симплекс-методом
     class SimplexMethodTable : Table
     {
-        public SimplexMethodTable(ModelOfLinearProgramming model) : base(model) {
+        public SimplexMethodTable(ModelOfLinearProgramming model) : base(model)
+        {
             symbol = 'x';
         }
 
-        
+        public SimplexMethodTable(ModelOfLinearProgramming model, int[] basis) : base(model)
+        {
+            symbol = 'y';
+            _basis = new int[model.Rows];
+            _basis = basis;
+        }
+
         private double CalculateZ(int leadColumn, int leadRow)
         {
             return _model.FreeMembersCoeffs[leadRow] / _model.MatrixCoeffs[leadRow, leadColumn];
@@ -255,12 +280,30 @@ namespace TableSimplexMethod
             }
         }
 
+        public bool CanBeSolved()
+        {
+            foreach (var value in _model.FreeMembersCoeffs)
+            {
+                if (value < 0)
+                    return false;
+            }
+            return true;
+        }
+
     }
 
     class DualSimplexMethodTable : Table
     {
-        public DualSimplexMethodTable(ModelOfLinearProgramming model) : base(model) {
+        public DualSimplexMethodTable(ModelOfLinearProgramming model) : base(model)
+        {
             symbol = 'y';
+        }
+
+        public DualSimplexMethodTable(ModelOfLinearProgramming model, int[] basis) : base(model)
+        {
+            symbol = 'y';
+            _basis = new int[model.Rows];
+            _basis = basis;
         }
 
 
@@ -280,12 +323,16 @@ namespace TableSimplexMethod
                 if (_basis.Contains(i))
                     continue;
 
-                if (_Q[i] != 0 && _model.MatrixCoeffs[leadRow, i] != 0)
+                if (_Q[i] != 0 && _model.MatrixCoeffs[leadRow, i] < 0)
                 {
-                    if(-_Q[i] / _model.MatrixCoeffs[leadRow, i] < -_Q[leadColumn] / _model.MatrixCoeffs[leadRow, leadColumn])
+                    if (-_Q[i] / _model.MatrixCoeffs[leadRow, i] < -_Q[leadColumn] / _model.MatrixCoeffs[leadRow, leadColumn])
                     {
                         leadColumn = i;
                     }
+                    /*if (Math.Abs(_model.MatrixCoeffs[leadRow, i]) > Math.Abs(_model.MatrixCoeffs[leadRow, leadColumn]))
+                    {
+                        leadColumn = i;
+                    }*/
                 }
             }
 
@@ -309,63 +356,4 @@ namespace TableSimplexMethod
     }
 
     // Модель задачі лінійного програмування
-    class ModelOfLinearProgramming
-    {
-        private int _rows, _cols;
-
-        public int Rows { get { return _rows; } }
-        public int Columns { get { return _cols; } }
-
-        private double[] _objectiveCoeffs; // коефіцієнти ф-ії мети
-        private double[,] _matrixCoeffs; // коефіцієнти функцій-обмежень
-        private double[] _freeMembersCoeffs; // коефіцієнти вільних членів
-
-        public double[] ObjectiveCoeffs
-        {
-            get
-            {
-                return _objectiveCoeffs;
-            }
-        }
-
-        public double[,] MatrixCoeffs
-        {
-            get
-            {
-                return _matrixCoeffs;
-            }
-        }
-
-        public double[] FreeMembersCoeffs
-        {
-            get
-            {
-                return _freeMembersCoeffs;
-            }
-        }
-
-        public ModelOfLinearProgramming(int rows, int cols, double[] objectiveCoeffs, double[,] matrixCoeffs, double[] freeMembersCoeffs)
-        {
-            _rows = rows;
-            _cols = cols;
-            _objectiveCoeffs = objectiveCoeffs;
-            _matrixCoeffs = matrixCoeffs;
-            _freeMembersCoeffs = freeMembersCoeffs;
-        }
-
-        public ModelOfLinearProgramming(ModelOfLinearProgramming model)
-        {
-            _rows = model._rows;
-            _cols = model._cols;
-
-            _objectiveCoeffs = new double[model.ObjectiveCoeffs.Length];
-            _matrixCoeffs = new double[model.MatrixCoeffs.Length / _cols, model.MatrixCoeffs.Length / _rows];
-            _freeMembersCoeffs = new double[model.FreeMembersCoeffs.Length];
-
-            Array.Copy(model.ObjectiveCoeffs, _objectiveCoeffs, model.ObjectiveCoeffs.Length);
-            Array.Copy(model.MatrixCoeffs, _matrixCoeffs, model.MatrixCoeffs.Length); 
-            Array.Copy(model.FreeMembersCoeffs, _freeMembersCoeffs, model.FreeMembersCoeffs.Length);
-        }
-
-    }
 }

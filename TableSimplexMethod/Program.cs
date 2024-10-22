@@ -8,14 +8,33 @@ class Program
     {
         Console.SetWindowSize(Console.WindowWidth * 2, Console.WindowHeight);
 
-        int Rows = 3, Columns = 6;
-        double[][] FunctionsCoefs = { [-180, -210, -244, 0, 0, 0] };
-        double[] P = [-10, -14, -12];
+        int Rows = 3, Columns = 5;
+        double[][] FunctionsCoefs = { [2, 1, 0, 0, 0] };
+        double[] P = [8, 11, 5];
         double[,] LimitCoefs = {
-            {-4, -3, -1, 1, 0, 0},
-            {-2, -1, -2, 0, 1, 0},
-            { -1, -3, -5, 0, 0, 1 }
+            {1, 1, 1, 0, 0},
+            {3, 1, 0, 1, 0},
+            {0, 1, 0, 0, 1}
         };
+
+        /*        int Rows = 2, Columns = 4;
+                double[][] FunctionsCoefs = { [8, 6, 0, 0] };
+                double[] P = [19, 16];
+                double[,] LimitCoefs = {
+                      {2, 5, 1, 0},
+                      {4, 1, 0, 1}
+                  };*/
+
+        /*int Rows = 3, Columns = 5;
+        double[][] FunctionsCoefs = { [1, 1, 2, 0, 0] };
+        double[] P = [8, -4, -6];
+        double[,] LimitCoefs = {
+                    {1, 1, 1, 0, 0},
+                    {-1, 1, 0, 1, 0},
+                    {-1, -1, 0, 0, 1}
+
+                };*/
+
 
         /*int Rows, Columns;
         double[][] FunctionsCoefs;
@@ -88,6 +107,9 @@ class Program
                         }
                 */
         ModelOfLinearProgramming mp = new ModelOfLinearProgramming(Rows, Columns, FunctionsCoefs[0], LimitCoefs, P);
-        OptimalAlgorithms.DualSimplexMethodAlgorithm(mp);
+
+        OptimalAlgorithms.GomoryMethodAlgorithm(mp);
+        
+
     }
 }
